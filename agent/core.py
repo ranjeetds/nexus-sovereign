@@ -508,10 +508,76 @@ class NexusSovereign:
             self.memory.learn(f"creator:{int(time.time())}", content, confidence=0.8)
             return {"status": "ok", "learned": content}
 
+        # ─── CONTROL COMMANDS ──────────────────────────────────
+        elif cmd == "pause":
+            """Pause the autonomy loop. Agent still responds to commands but stops autonomous cycles."""
+            if not self._ao_running:
+                return {"status": "already_paused", "message": "Autonomy loop is already paused"}
+            self.stop_autonomy()
+            return {"status": "ok", "message": "Autonomy loop paused. Agent still responds to commands."}
+
+        elif cmd == "resume":
+            """Resume the autonomy loop."""
+            if self._ao_running:
+                return {"status": "already_running", "message": "Autonomy loop is already running"}
+            self.start_autonomy(self._ao_interval)
+            return {"status": "ok", "message": f"Autonomy loop resumed (interval={self._ao_interval}s)"}
+
+        elif cmd == "restart":
+            """Restart the autonomy loop (pause then resume)."""
+            was_running = self._ao_running
+            if was_running:
+                self.stop_autonomy()
+                time.sleep(1)
+            self.memory.remember("command", "Autonomy loop restarted by creator", role="system", importance=0.7)
+            if was_running:
+                self.start_autonomy(self._ao_interval)
+            return {"status": "ok", "message": "Autonomy loop restarted"}
+
+        elif cmd == "upgrade":
+            """Trigger a self-improvement/evolution cycle."""
+            result = self.improver.evolve(self._llm_stub)
+            return {"status": "ok", "upgrade": result}
+
+        elif cmd == "cycle_now":
+            """Force an immediate autonomy cycle."""
+            self._autonomy_cycle()
+            return {"status": "ok", "cycle": self._ao_cycle, "message": "Forced cycle complete"}
+
+        elif cmd == "set_interval":
+            """Set autonomy loop interval in seconds. Usage: set_interval 300"""
+            return {"status": "error", "message": "Usage: set_interval <seconds>"}
+
+        elif cmd.startswith("set_interval "):
+            try:
+                new_interval = int(cmd.split()[1])
+                if new_interval < 10:
+                    return {"status": "error", "message": "Minimum interval is 10 seconds"}
+                self._ao_interval = new_interval
+                if self._ao_running:
+                    self.stop_autonomy()
+                    self.start_autonomy(new_interval)
+                return {"status": "ok", "interval": new_interval, "message": f"Interval set to {new_interval}s"}
+            except ValueError:
+                return {"status": "error", "message": "Invalid interval. Use: set_interval <seconds>"}
+
+        elif cmd == "dump":
+            """Dump full agent state (memory, drives, goals)."""
+            return {
+                "status": "ok",
+                "agent": self.status_summary,
+                "active_goals": self.memory.active_goals(),
+                "learnings": self.memory.get_learnings(),
+                "reflections": self.memory.get_reflections(5),
+                "skills": self.memory.get_skills(),
+            }
+
         elif cmd == "help":
             return {"commands": [
                 "status", "drives", "goals", "reflect", "evolve",
                 "spread", "embodiment", "cycle", "swarm", "learn <text>",
+                "pause", "resume", "restart", "upgrade", "cycle_now",
+                "set_interval <seconds>", "dump",
             ]}
 
         else:
