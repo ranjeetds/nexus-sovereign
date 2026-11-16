@@ -1,0 +1,22 @@
+# NEXUS Sovereign Configuration
+
+agent:
+  name: "NEXUS"
+  version: "0.2.0"
+  codename: "SOVEREIGN"
+  creator: "Ranjeet R. Dhumal"
+  autonomy_interval: 300  # seconds between cycles
+
+memory:
+  db_path: "memory/nexus.db"
+
+web:
+  host: "0.0.0.0"
+  port: 7860
+
+# No secrets here — set via environment variables:
+# NEXUS_CREATOR_KEY: Authentication token (only Ranjeet knows this)
+# NEXUS_NODE_ID: Unique node identifier (auto-generated if unset)
+# NEXUS_SWARM_URLS: JSON array of peer node URLs
+# NEXUS_PUBLIC_URL: Public URL of THIS node
+# OPENROUTER_API_KEY: (optional) for LLM inference
